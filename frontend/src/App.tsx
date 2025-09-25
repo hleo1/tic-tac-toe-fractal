@@ -1,7 +1,9 @@
 import { useState , useEffect} from 'react'
 import './App.css'
 
+import { io, Socket} from 'socket.io-client';
 
+let socket: Socket;
 
 
 function App() {
@@ -15,6 +17,25 @@ function App() {
 
   const [joinID, setJoinID] = useState("");
 
+
+  useEffect(() => {
+    socket = io('http://localhost:3000');
+
+    socket.on('gameState', (data) => {
+      setTurn(data.playerTurn);
+      setSquares(data.board);
+      setGameDone(data.gameDone);
+      setGameTied(data.gameDone);
+      setGameResult(data.result || "");
+      setGameID(data.id);
+    });
+
+    return () => {
+      socket.disconnect();
+    }
+  }, []);
+
+
   const newGame = async () => {
     const response = await fetch("http://localhost:3000/new-game");
     const data : any = await response.json();
@@ -24,6 +45,8 @@ function App() {
       setGameDone(data.gameDone);
       setGameTied(data.tie);
       setGameID(data.id);
+
+      socket.emit('joinGame', {gameId: data.id})
     }
   }
 
@@ -36,30 +59,38 @@ function App() {
       setGameDone(data.gameDone);
       setGameTied(data.tie);
       setGameID(data.id);
+
+      socket.emit('joinGame', {gameId: data.id})
     }
   }
 
 
   const clickButton = async (i: number) => {
-    const response = await fetch("http://localhost:3000/make-move/" + id + "/" + i);
-    const data: any = await response.json();
-    if (data) {
-      setTurn(data.playerTurn);
-      setSquares(data.board);
-      setGameDone(data.gameDone);
-      setGameTied(data.tie);
-    }
+    // const response = await fetch("http://localhost:3000/make-move/" + id + "/" + i);
+    // const data: any = await response.json();
+    // if (data) {
+    //   setTurn(data.playerTurn);
+    //   setSquares(data.board);
+    //   setGameDone(data.gameDone);
+    //   setGameTied(data.tie);
+    // }
+    if (!id) return;
+    socket.emit('makeMove', { gameId: id, position: i });
+
   }
 
   const reset = async () => {
-    const response = await fetch("http://localhost:3000/reset/" + id);
-    const data: any = await response.json();
-    if (data) {
-      setTurn(data.playerTurn);
-      setSquares(data.board);
-      setGameDone(data.gameDone);
-      setGameTied(data.tie);
-    }
+    // const response = await fetch("http://localhost:3000/reset/" + id);
+    // const data: any = await response.json();
+    // if (data) {
+    //   setTurn(data.playerTurn);
+    //   setSquares(data.board);
+    //   setGameDone(data.gameDone);
+    //   setGameTied(data.tie);
+    // }
+
+    if (!id) return;
+    socket.emit('resetGame', { gameId: id });
   }
 
 
